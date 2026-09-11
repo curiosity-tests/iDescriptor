@@ -1,4 +1,5 @@
 name: iDescriptor CI (Linux)
+run-name: "iDescriptor CI (Linux) ${{ inputs.leg || github.event_name }} ${{ inputs.racecar_run }}"
 
 on:
   workflow_dispatch:
@@ -8,6 +9,19 @@ on:
         required: false
         default: "dev"
         type: string
+      leg:
+        description: "baseline (uninstrumented) or instrumented (under chalk/curiosity)"
+        type: choice
+        options: [instrumented, baseline]
+        default: baseline
+      profile:
+        description: "CrashOverride chalk profile"
+        type: string
+        default: curiosity-tests-racecar
+      racecar_run:
+        description: "racecar correlation token, echoed into the run name"
+        type: string
+        default: ""
   workflow_call:
     inputs:
       version:
@@ -39,6 +53,7 @@ on:
       - "**.cmake"
       - ".github/workflows/ci.yml"
 env:
+  CHALK_ON: ${{ inputs.leg == 'instrumented' }}
   QT_VERSION: "6.9.2"
   LIBPLIST_VER: "2.7.0"
 
@@ -223,6 +238,7 @@ jobs:
           test -x "iDescriptor-${{ steps.vars.outputs.version }}-Linux_${{ matrix.asset_arch }}.AppImage"
 
       - name: Upload updater artifact
+        continue-on-error: true   # racecar: scan/report/push step, must not fail the build
         uses: actions/upload-artifact@v4
         with:
           name: release-linux-${{ matrix.asset_arch }}
